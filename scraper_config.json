@@ -1,0 +1,9 @@
+{
+  "data_source": "fmp",
+  "coverage": "all",
+  "watch_list": [],
+  "ownership_filter": ["self", "spouse", "joint", "dependent", "unknown"],
+  "flags": {"late_filing": true, "committee_sector": true, "committee_timing": true, "performance": true},
+  "alert_on": "flagged",
+  "report": {"enabled": true, "title": "Earendil", "subtitle": "Congressional trades, with context", "focus_state": "ID", "site_url": ""}
+}

@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Earendil settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#EEF1F4;--sheet:#FFFFFF;--ink:#1D2433;--muted:#5B6475;--rule:#CFD6DE;--focus:#2B59C3;
+--late:#A35F0A;--committee:#1F6F78;--timing:#8E2C48;--perf:#3D5A99}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#151A23;--sheet:#1D2430;--ink:#E6EAF0;
+--muted:#A3ACBA;--rule:#323C4C;--focus:#8FB0FF;--late:#E3A64A;--committee:#5FBFC7;--timing:#E27A97;--perf:#8FA8E8}}
+:root[data-theme="dark"]{--paper:#151A23;--sheet:#1D2430;--ink:#E6EAF0;--muted:#A3ACBA;--rule:#323C4C;
+--focus:#8FB0FF;--late:#E3A64A;--committee:#5FBFC7;--timing:#E27A97;--perf:#8FA8E8}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 "Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:44rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+h1{font-size:2rem;font-weight:800;letter-spacing:-.02em;margin:0 0 .5rem}
+.intro{color:var(--muted);margin:0 0 2rem}
+fieldset{border:0;border-top:1px solid var(--rule);margin:0;padding:1.5rem 0}
+legend{font-weight:800;font-size:1.15rem;padding:0 0 .75rem}
+label{display:block;font-weight:600;margin:.9rem 0 .3rem}
+.hint{display:block;font-weight:400;color:var(--muted);font-size:.9rem}
+input[type=text],input[type=password],input[type=number],input[type=url],input[type=email],select,textarea{
+width:100%;font:inherit;padding:.55rem .7rem;border:1px solid var(--rule);border-radius:6px;background:var(--sheet);color:var(--ink)}
+textarea{min-height:6rem;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media (max-width:34rem){.row{grid-template-columns:1fr}}
+.check{display:flex;gap:.6rem;align-items:flex-start;font-weight:400;margin:.6rem 0}
+.check input{margin-top:.3rem;width:1.05rem;height:1.05rem;accent-color:var(--focus)}
+.flagopt{border-left:4px solid var(--c);padding:.2rem 0 .2rem .8rem;margin:.75rem 0}
+.flagopt b{color:var(--c)}
+.boxes{display:flex;flex-wrap:wrap;gap:.25rem 1.25rem}
+.actions{position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--rule);
+padding:1rem 0 calc(1rem + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;gap:.75rem;align-items:center}
+button,.file{font:inherit;font-weight:600;padding:.6rem 1.1rem;border-radius:6px;border:1.5px solid var(--ink);
+background:var(--ink);color:var(--paper);cursor:pointer}
+.file{background:transparent;color:var(--ink)}
+.file input{position:absolute;opacity:0;width:1px;height:1px}
+#status{color:var(--muted);font-size:.92rem}
+:focus-visible,.file:focus-within{outline:3px solid var(--focus);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+<h1>Earendil settings</h1>
+<p class="intro">Choose what Earendil collects and flags, then save <code>scraper_config.json</code> into your
+repository next to <code>earendil.py</code>. Running on GitHub? Leave every key and password blank here and add
+them as repository secrets instead, because the settings file is public in a public repository.</p>
+
+<form id="f" onsubmit="return false">
+<fieldset>
+<legend>Data</legend>
+<label for="data_source">Source</label>
+<select id="data_source">
+<option value="fmp">Financial Modeling Prep (individual trades, recommended)</option>
+<option value="portal">House and Senate portals (new filings only, no trade details)</option>
+</select>
+<label for="fmp_api_key">FMP API key <span class="hint">For running on your own computer only. On GitHub, use the FMP_API_KEY secret.</span></label>
+<input id="fmp_api_key" type="password" autocomplete="off">
+<label for="fmp_pages">Pages to pull per chamber <span class="hint">100 trades per page.</span></label>
+<input id="fmp_pages" type="number" min="1" max="50">
+</fieldset>
+
+<fieldset>
+<legend>Who to cover</legend>
+<label class="check"><input type="radio" name="coverage" value="all"> <span>All of Congress<span class="hint">Needed to spot patterns across members. Your watch list is still highlighted in alerts.</span></span></label>
+<label class="check"><input type="radio" name="coverage" value="watchlist"> <span>Watch list only</span></label>
+<label for="watch_list">Watch list <span class="hint">One member per line, for example: Mike Crapo</span></label>
+<textarea id="watch_list"></textarea>
+<label>Whose trades to include</label>
+<div class="boxes" id="owners"></div>
+</fieldset>
+
+<fieldset>
+<legend>Flags</legend>
+<div class="flagopt" style="--c:var(--late)">
+<label class="check"><input type="checkbox" id="flag_late_filing"> <span><b>Late filing</b><span class="hint">Disclosed after the legal deadline.</span></span></label>
+<label for="late_filing_days">Deadline in days</label><input id="late_filing_days" type="number" min="1">
+</div>
+<div class="flagopt" style="--c:var(--committee)">
+<label class="check"><input type="checkbox" id="flag_committee_sector"> <span><b>Committee oversight</b><span class="hint">Member trades in a sector their committee oversees.</span></span></label>
+</div>
+<div class="flagopt" style="--c:var(--timing)">
+<label class="check"><input type="checkbox" id="flag_committee_timing"> <span><b>Committee timing</b><span class="hint">That committee met near the trade date. Uses a free key from api.congress.gov; the first runs build a meeting cache gradually.</span></span></label>
+<div class="row">
+<div><label for="congress_gov_api_key">Congress.gov API key <span class="hint">On GitHub, use the CONGRESS_GOV_API_KEY secret.</span></label><input id="congress_gov_api_key" type="password" autocomplete="off"></div>
+<div><label for="timing_window_days">Window in days</label><input id="timing_window_days" type="number" min="1"></div>
+</div>
+</div>
+<div class="flagopt" style="--c:var(--perf)">
+<label class="check"><input type="checkbox" id="flag_performance"> <span><b>Well-timed</b><span class="hint">Stock beat SPY in the trade's direction afterward.</span></span></label>
+<div class="row">
+<div><label for="performance_horizon_days">Days after the trade</label><input id="performance_horizon_days" type="number" min="1"></div>
+<div><label for="performance_flag_pct">Flag above this edge (%)</label><input id="performance_flag_pct" type="number" min="1"></div>
+</div>
+</div>
+<label for="max_lookups_per_run">Market data lookups per run <span class="hint">Keeps you under your FMP plan's limits. Results are cached.</span></label>
+<input id="max_lookups_per_run" type="number" min="0">
+</fieldset>
+
+<fieldset>
+<legend>Alerts</legend>
+<label for="alert_on">Alert me about</label>
+<select id="alert_on">
+<option value="flagged">Flagged trades and my watch list</option>
+<option value="watchlist">My watch list only</option>
+<option value="all">Every new trade</option>
+</select>
+<label for="ntfy_topic">ntfy topic for phone notifications <span class="hint">On GitHub, use the NTFY_TOPIC secret. Pick something hard to guess; anyone who knows it can read the alerts.</span></label>
+<input id="ntfy_topic" type="text" autocomplete="off">
+<label class="check"><input type="checkbox" id="alert_desktop"> <span>Desktop notifications (when running on a computer)</span></label>
+<label for="webhook_url">Discord or Slack webhook</label><input id="webhook_url" type="url" placeholder="https://">
+<label class="check"><input type="checkbox" id="email_enabled"> <span>Email alerts</span></label>
+<div class="row">
+<div><label for="smtp_host">SMTP server</label><input id="smtp_host" type="text"></div>
+<div><label for="smtp_port">Port</label><input id="smtp_port" type="number"></div>
+<div><label for="email_username">Username</label><input id="email_username" type="email"></div>
+<div><label for="email_password">App password</label><input id="email_password" type="password" autocomplete="off"></div>
+</div>
+<label for="email_to">Send to</label><input id="email_to" type="email">
+</fieldset>
+
+<fieldset>
+<legend>Public report</legend>
+<label class="check"><input type="checkbox" id="report_enabled"> <span>Rebuild the report after each run</span></label>
+<label for="report_title">Title</label><input id="report_title" type="text">
+<label for="report_subtitle">Subtitle</label><input id="report_subtitle" type="text">
+<label for="site_url">Your report's web address <span class="hint">Your GitHub Pages link. Tapping a phone alert opens it.</span></label>
+<input id="site_url" type="url" placeholder="https://yourname.github.io/earendil/">
+<label for="focus_state">Highlight a state's delegation <span class="hint">Two-letter code, or leave blank.</span></label>
+<input id="focus_state" type="text" maxlength="2" style="max-width:6rem;text-transform:uppercase">
+</fieldset>
+
+<div class="actions">
+<button type="button" id="save">Save settings file</button>
+<label class="file">Open settings file<input type="file" id="load" accept=".json,application/json"></label>
+<span id="status" aria-live="polite"></span>
+</div>
+</form>
+</main>
+<script>
+const DEFAULTS={data_source:"fmp",fmp_api_key:"",fmp_endpoints:{senate:"https://financialmodelingprep.com/stable/senate-latest",house:"https://financialmodelingprep.com/stable/house-latest"},
+fmp_pages:5,coverage:"all",watch_list:[],ownership_filter:["self","spouse","joint","dependent","unknown"],
+flags:{late_filing:true,committee_sector:true,committee_timing:false,performance:false},late_filing_days:45,
+congress_gov_api_key:"",timing_window_days:14,max_meeting_fetches_per_run:400,performance_horizon_days:30,
+performance_flag_pct:10,max_lookups_per_run:150,sector_overrides:{},alert_on:"flagged",
+alerts:{desktop:true,ntfy_topic:"",webhook_url:"",email:{enabled:false,smtp_host:"smtp.gmail.com",smtp_port:587,username:"",password:"",to:""}},
+report:{enabled:true,title:"Earendil",subtitle:"Congressional trades, with context",focus_state:"ID",site_url:""}};
+const OWNERS=[["self","Member"],["spouse","Spouse"],["joint","Joint"],["dependent","Dependent child"],["unknown","Not stated"]];
+const $=id=>document.getElementById(id);
+let extra={};
+$("owners").innerHTML=OWNERS.map(([v,l])=>`<label class="check"><input type="checkbox" value="${v}"> <span>${l}</span></label>`).join("");
+function merge(a,b){const o={...a};for(const k in b){o[k]=(b[k]&&typeof b[k]==="object"&&!Array.isArray(b[k])&&a[k]&&typeof a[k]==="object")?merge(a[k],b[k]):b[k]}return o}
+function fill(c){
+ extra=c;
+ for(const k of["data_source","fmp_api_key","fmp_pages","late_filing_days","congress_gov_api_key","timing_window_days",
+  "performance_horizon_days","performance_flag_pct","max_lookups_per_run","alert_on"])$(k).value=c[k];
+ document.querySelectorAll("input[name=coverage]").forEach(r=>r.checked=r.value===c.coverage);
+ $("watch_list").value=(c.watch_list||[]).map(w=>typeof w==="object"?(w.name||""):w).join("\n");
+ document.querySelectorAll("#owners input").forEach(b=>b.checked=c.ownership_filter.includes(b.value));
+ for(const k in c.flags)if($("flag_"+k))$("flag_"+k).checked=!!c.flags[k];
+ $("alert_desktop").checked=c.alerts.desktop;$("ntfy_topic").value=c.alerts.ntfy_topic||"";$("webhook_url").value=c.alerts.webhook_url;
+ const e=c.alerts.email;$("email_enabled").checked=e.enabled;$("smtp_host").value=e.smtp_host;$("smtp_port").value=e.smtp_port;
+ $("email_username").value=e.username;$("email_password").value=e.password;$("email_to").value=e.to;
+ $("report_enabled").checked=c.report.enabled;$("report_title").value=c.report.title;$("report_subtitle").value=c.report.subtitle||"";$("site_url").value=c.report.site_url||"";$("focus_state").value=c.report.focus_state;
+}
+function read(){
+ const num=id=>Number($(id).value)||0;
+ return merge(extra,{data_source:$("data_source").value,fmp_api_key:$("fmp_api_key").value.trim(),fmp_pages:num("fmp_pages"),
+  coverage:(document.querySelector("input[name=coverage]:checked")||{}).value||"all",
+  watch_list:$("watch_list").value.split("\n").map(s=>s.trim()).filter(Boolean),
+  ownership_filter:[...document.querySelectorAll("#owners input:checked")].map(b=>b.value),
+  flags:{late_filing:$("flag_late_filing").checked,committee_sector:$("flag_committee_sector").checked,
+   committee_timing:$("flag_committee_timing").checked,performance:$("flag_performance").checked},
+  late_filing_days:num("late_filing_days"),congress_gov_api_key:$("congress_gov_api_key").value.trim(),
+  timing_window_days:num("timing_window_days"),performance_horizon_days:num("performance_horizon_days"),
+  performance_flag_pct:num("performance_flag_pct"),max_lookups_per_run:num("max_lookups_per_run"),alert_on:$("alert_on").value,
+  alerts:{desktop:$("alert_desktop").checked,ntfy_topic:$("ntfy_topic").value.trim(),webhook_url:$("webhook_url").value.trim(),
+   email:{enabled:$("email_enabled").checked,smtp_host:$("smtp_host").value.trim(),smtp_port:num("smtp_port"),
+   username:$("email_username").value.trim(),password:$("email_password").value,to:$("email_to").value.trim()}},
+  report:{enabled:$("report_enabled").checked,title:$("report_title").value.trim()||DEFAULTS.report.title,subtitle:$("report_subtitle").value.trim(),site_url:$("site_url").value.trim(),
+   focus_state:$("focus_state").value.trim().toUpperCase()}});
+}
+function problems(c){
+ const p=[];
+ if(c.coverage==="watchlist"&&!c.watch_list.length)p.push("Add at least one member to the watch list, or cover all of Congress.");
+ if(!c.ownership_filter.length)p.push("Choose at least one whose-trades option.");
+ if(c.alerts.email.enabled&&!c.alerts.email.to)p.push("Add an email address to send alerts to.");
+ return p;
+}
+$("save").onclick=()=>{
+ const c=read(),p=problems(c);
+ if(p.length){$("status").textContent=p[0];return}
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(c,null,2)],{type:"application/json"}));
+ a.download="scraper_config.json";a.click();URL.revokeObjectURL(a.href);
+ $("status").textContent=(c.fmp_api_key||c.congress_gov_api_key||c.alerts.ntfy_topic||c.alerts.email.password)?"Saved. This file contains keys, so keep it off GitHub and use secrets there.":"Saved scraper_config.json. Upload it to your repository.";
+};
+$("load").onchange=ev=>{
+ const file=ev.target.files[0];if(!file)return;
+ file.text().then(t=>{let c=JSON.parse(t);if(!("coverage"in c)&&c.watch_list&&c.watch_list.length)c.coverage="watchlist";
+  fill(merge(DEFAULTS,c));$("status").textContent="Opened "+file.name+".";})
+ .catch(()=>{$("status").textContent="That file isn't valid JSON. Open a scraper_config.json saved by this page."});
+};
+document.getElementById("f").addEventListener("input",()=>{$("status").textContent=""});
+fill(merge(DEFAULTS,{}));
+</script>
+</body>
+</html>
